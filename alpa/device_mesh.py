@@ -2141,14 +2141,16 @@ class DeviceCluster:
                 from ae
 
         # Gather host ids
-        all_host_info = []
+        all_host_info = []#所有节点的node集合
         all_host_ips = []
 
         for node in ray.nodes():
             for key in node["Resources"]:
+                #resource like:{'CPU': 64.0, 'memory': 65489665844.0, 'accelerator_type:G': 1.0, 'object_store_memory': 32352713932.0, 'GPU': 1.0, 'node:10.176.22.220': 1.0}
                 if (is_ray_node_resource(key) and
                         global_config.ray_accelerator_name
                         in node["Resources"]):
+                    #key like node:10.176.22.220
                     all_host_info.append(node)
                     all_host_ips.append(key.split("node:")[-1])
 
@@ -2179,7 +2181,9 @@ class DeviceCluster:
             self.host_num_devices = [num_devices_per_node] * num_hosts
         else:
             self.host_num_devices = all_host_num_devices
-
+        #host_num_devices like [4,2,2,4] means 4 nodes with 4,2,2,4 gpus respectievly
+         
+     
         # Create placement group
         self.namespace = namespace
         if namespace:
@@ -2196,7 +2200,7 @@ class DeviceCluster:
         else:
             self.placement_group = create_placement_group(
                 num_hosts, self.host_num_devices, pg_name)
-
+            
         # Update the Device Cluster info from placement group
         if num_devices_per_node or num_nodes:
             # map: host ip to host info
