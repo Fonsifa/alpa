@@ -224,6 +224,7 @@ class CompileWorker:
             "num_micro_batches": num_micro_batches,
             "memory_budget_per_device": None,
         }
+        #print("hlo module before auto shard pass: ",config.hlo.to_string())
         try:
             # pylint: disable=unbalanced-tuple-unpacking
             module_names, hlos, stage_plan = (run_auto_sharding_pass(
@@ -245,6 +246,7 @@ class CompileWorker:
 
         for module_id, module_name in enumerate(config.names):
             hlo = hlo_dict[module_name]
+            # print("hlo module after auto shard pass: ",hlo.to_string())
             setup_computation_alias(hlo, config.module_donate_invars[module_id])
             module = hlo.get_module()
             if module_name.endswith(APPLY_GRAD_MARKER_SUFFIX):
@@ -266,6 +268,7 @@ class CompileWorker:
                         logical_mesh.num_devices,
                         rewrite_for_grad_acc=rewrite_for_grad_acc,
                         rewrite_grad_acc_indices=acc_grad_outvars_indices)
+                    # print("hlo module after spmd pass: ",optimized_hlo.to_string())
                 except IndexError as e:
                     logger.warning(f"Compilation error (spmd partitioner pass) "
                                    f"for stage {stage_id} : {e}")
@@ -353,6 +356,10 @@ class ProfileWorker:
             hlo_module.set_spmd_parameters_shardings(
                 [xe.HloSharding(x) for x in input_shardings])
             hlo_module.set_spmd_output_sharding(xe.HloSharding(output_sharding))
+        # print("input_vars: ",input_avals)
+        # print("output_avals",output_avals)
+        # print("donated_invars",donated_invars)
+        # print("hlo module:",hlo.to_string())
         executable = PartialGradAccMeshDriverExecutable(self.mesh, hlo,
                                                         stage_plan, input_avals,
                                                         output_avals,
@@ -491,6 +498,12 @@ def compile_all(stages, num_micro_batches, default_as_option, profile_results):
     compile_workers = CompileWorkerPool(num_cpus)
     num_compiled_stages = 0
     for i, (stage_idx, stage_config, auto_sharding_config) in enumerate(stages):
+        #print(i,stage_idx,stage_config,auto_sharding_config)
+        #stage_idx -->  (0,1,1,0)
+        
+        #print(auto_sharding_config[0].shape,auto_sharding_config[1])
+        #(2, 1) {'force_batch_dim_to_mesh_dim': 0}
+        #(2, 1) {}
         if (stage_idx in profile_results and
                 profile_results[stage_idx].fully_profiled()):
             continue
@@ -512,6 +525,7 @@ def compile_all(stages, num_micro_batches, default_as_option, profile_results):
         except RayActorError as e:
             logger.warning(f"A Compile worker died unexpectedly: {e}")
             continue
+        # print("compiled output: ",compiled_output)
         compiled_outputs[i] = compiled_output
         stage_idx, stage_config, auto_sharding_config = stages[i]
         logical_mesh_shape = compiled_output.stage_plan.logical_mesh_shape
@@ -1412,6 +1426,7 @@ def generate_stage_info(all_layers, selected_indices,
     module_accumulator_mappings = []
     module_required_outvars = []
     for layer_indices in selected_indices:
+        print("selected_indices: ",selected_indices)
         module, module_accumulator_mapping, required_outvars = (
             select_module_layers(all_layers, layer_indices,
                                  global_accumulator_mapping, acc_grad_outvars))
@@ -1449,6 +1464,7 @@ def generate_stage_info(all_layers, selected_indices,
         acc_grad_outvars_indices = tuple(
             i for i, outvar in enumerate(merged_jaxpr.jaxpr.outvars)
             if outvar in acc_grad_outvars_set)
+        #print("merged_jaxpr: ",merged_jaxpr.jaxpr)
         invar_names = tuple(repr(var) for var in merged_jaxpr.jaxpr.invars)
         outvar_names = tuple(repr(var) for var in merged_jaxpr.jaxpr.outvars)
         invar_avals = tuple(var.aval for var in merged_jaxpr.jaxpr.invars)

@@ -36,6 +36,7 @@ class AutoShardingBasicTest(unittest.TestCase):
         b = add_one(a)
 
         # Assert b is sharded
+        print(b.sharding_spec)
         assert (b.sharding_spec == pxla.ShardingSpec(
             sharding=(NoSharding(), Chunked([4])),
             mesh_mapping=(ShardedAxis(0),)) or b.sharding_spec

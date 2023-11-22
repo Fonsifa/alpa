@@ -95,9 +95,9 @@ class LogicalDeviceMesh:
 
         # coefficient for alpha-beta communication model
         if mesh_alpha is None:
-            mesh_alpha = [1] * len(self.id_mesh.shape)
+            mesh_alpha = [1] * len(self.id_mesh.shape)# 每一维的alpha都设为1
         if mesh_beta is None:
-            mesh_beta = [1] * len(self.id_mesh.shape)
+            mesh_beta = [1] * len(self.id_mesh.shape)# 每一维的beta也设为1
         self.mesh_alpha = tuple(mesh_alpha)
         self.mesh_beta = tuple(mesh_beta)
 
@@ -118,22 +118,22 @@ class LogicalDeviceMesh:
             [max(self.mesh_alpha), max(self.mesh_alpha)],
             [min(self.mesh_beta), min(self.mesh_beta)])
 
-    def all_gather_cost(self, num_bytes, mesh_dim):
+    def all_gather_cost(self, num_bytes, mesh_dim):# alpha + (N-1)/N*B +0.1
         num_devices = self.id_mesh.shape[mesh_dim]
         return (self.mesh_alpha[mesh_dim] + self.mesh_beta[mesh_dim] *
                 (num_devices - 1) / num_devices * num_bytes + 0.1)
 
-    def all_reduce_cost(self, num_bytes, mesh_dim):
+    def all_reduce_cost(self, num_bytes, mesh_dim): # alpha + 2*(N-1)/N*B +0.01
         num_devices = self.id_mesh.shape[mesh_dim]
         return (self.mesh_alpha[mesh_dim] + self.mesh_beta[mesh_dim] * 2 *
                 (num_devices - 1) / num_devices * num_bytes + 0.01)
 
-    def reduce_scatter_cost(self, num_bytes, mesh_dim):
+    def reduce_scatter_cost(self, num_bytes, mesh_dim):# alpha + (N-1)/N*B +0.001
         num_devices = self.id_mesh.shape[mesh_dim]
         return (self.mesh_alpha[mesh_dim] + self.mesh_beta[mesh_dim] *
                 (num_devices - 1) / num_devices * num_bytes + 0.001)
 
-    def all_to_all_cost(self, num_bytes, mesh_dim):
+    def all_to_all_cost(self, num_bytes, mesh_dim):# alpha + (N-1)/N*B/2 +0.001
         num_devices = self.id_mesh.shape[mesh_dim]
         penalty_factor = num_devices / 2.0
         return (self.mesh_alpha[mesh_dim] + self.mesh_beta[mesh_dim] *
@@ -270,7 +270,11 @@ def run_auto_sharding_pass(
 
     # Temporarily disable this.
     grad_acc_num_micro_batches = None
-
+    # print("logical_mesh.shape: ",logical_mesh.shape) (2,1)
+    # print("logical_mesh.mesh_alpha: ",logical_mesh.mesh_alpha) (1,1)
+    # print("logical_mesh.mesh_beta: ",logical_mesh.mesh_beta) (1, 0.1)
+    # print("logical_mesh.id_mesh: ",logical_mesh.id_mesh) [[0] [1]]
+    #print("logical_mesh.id_mesh.shape: ",logical_mesh.id_mesh.shape) (2,1)
     with XlaPassContext({
             # Auto-sharding solver options
             "auto_sharding::enable":
@@ -317,7 +321,6 @@ def run_auto_sharding_pass(
                 tuple(float(x) for x in logical_mesh.mesh_beta),
             "auto_sharding::device_mesh_prof_result":
                 getattr(logical_mesh.physical_mesh, "prof_result", None),
-
             # Gradient accumulation rewrite
             "auto_sharding::rewrite_for_grad_acc":
                 rewrite_for_grad_acc,
@@ -336,6 +339,7 @@ def run_auto_sharding_pass(
             "auto_sharding::print_strategy":
                 os.environ.get("ALPA_DEBUG_PRINT_AS_STRATEGY", "False").lower()
                 in ["true", "1"],
+                #True,
             "auto_sharding::force_strategy":
                 False,
             "auto_sharding::force_strategy_inst_indices": [],
