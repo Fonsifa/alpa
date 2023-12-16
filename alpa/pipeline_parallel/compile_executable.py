@@ -43,7 +43,7 @@ from alpa.util import (get_var_mapping, trace_jaxpr_with_micro_batch,
                        OrderedSet, GradFuncTransformContext)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 def compile_pipeshard_executable(
@@ -114,7 +114,7 @@ def compile_pipeshard_executable(
         batch_invars, virtual_mesh, num_microbatch, pipeline_schedule,
         default_as_option, stage_option, name_base, global_input_shardings,
         None, stage_input_shardings, parsed_ms_option)
-
+    print("create PipeshardDriverExecutable")
     executable = PipeshardDriverExecutable(
         mesh_group=virtual_mesh.launched_physical_mesh_group,
         pipeshard_config=pipeshard_config,
@@ -148,6 +148,7 @@ def compile_pipeshard_executable_internal(
         stage_input_shardings: Forcibly set sharding specs of input vars of
           each stage.
     """
+    print("call internal compile")
     global_invars = closed_jaxpr.jaxpr.invars
     gensym_func = gensym([closed_jaxpr.jaxpr])
     inference_mode = (pipeline_schedule == "inference")
@@ -292,6 +293,7 @@ def compile_pipeshard_executable_internal(
     pipeshard_config = emitter_cls(**emitter_kwargs).compile()
 
     debug_compilation_time("runtime emitter")
+    print("internal compile over")
     return pipeshard_config
 
 

@@ -51,7 +51,7 @@ PLACEMENT_GROUP_TIMEOUT_S_ENV = "ALPA_PLACEMENT_GROUP_TIMEOUT_S_ENV"
 ########################################
 
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.DEBUG)
 
 def freeze_dict(pytree: PyTreeDef):
     """Convert a pytree to a FrozenDict."""
@@ -1031,9 +1031,10 @@ def profile_xla_executable(compiled, backend, local_devices):
 
     # Run benchmark
     def run_func():
+        print("execute_sharded_on_local_devices ")
         device_outputs = compiled.execute_sharded_on_local_devices(
             device_inputs)
-
+        print("execute_sharded_on_local_devices over")
         # Reset the value for donate buffers
         ct = 0
         for j in range(len(device_inputs)):
@@ -1046,6 +1047,7 @@ def profile_xla_executable(compiled, backend, local_devices):
     try:
         costs = benchmark_func(run_func, repeat=3, number=3)
     except RuntimeError:
+        print("error when running benchmark")
         costs = cost_failed
     return costs
 

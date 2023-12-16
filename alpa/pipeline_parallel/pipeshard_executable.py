@@ -35,7 +35,7 @@ from alpa.util import OrderedSet, mesh_ids_hash
 traceback_util.register_exclusion(__file__)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 class PipeshardDriverExecutable:
@@ -56,7 +56,7 @@ class PipeshardDriverExecutable:
         self.in_tree = in_tree
         self.out_tree = out_tree
         self.static_argnums = static_argnums
-
+        print("init PipeshardDriverExecutable",self.num_mesh,"meshes")
         ##### For debugging and serialization #####
         self.stages = pipeshard_config.xla_stages
         self.schedule = pipeshard_config.schedule

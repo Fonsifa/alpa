@@ -1,0 +1,456 @@
+(from,to,mesh_id,auto_sharding_config_idx)
+stage_idx :(0, 1, 1, 0) 
+
+
+'''StageConfig = namedtuple("StageConfig", [
+    "n_modules", -->forward and backward stages
+    "compile_config", --> 
+    "module_profile_configs", 
+    "apply_grad_config"
+])'''
+StageConfig(
+    n_modules=2, 
+    compile_config=CompileConfig(
+                hlo=<alpa.wrapped_hlo.WrappedHlo object at 0x7f6ce857d3a0>, 
+                names=['stage_0_1_acc_grad_0', 'stage_0_1_acc_grad_1', 'stage_0_1_apply_grad'], 
+                module_donate_invars=[
+                    (False, False, False, False, False, False, False, False, False, False), //4w 4b input and y
+                    (True, True, True, True, True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False), //4w 4b in trainstate, 2w 2medium for backward, 4medium and 4 bool, 
+                    (True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True,
+                        True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, False, False)],26+8
+                module_acc_grad_outvars_indices=[(), (0, 1, 2, 3, 4, 5, 6, 7)]),
+    module_profile_configs=[
+        ModuleProfileConfig(invar_names=('c', 'b', 'e', 'd', 'ba', 'g', 'f', 'i', 'h', 'bb'), 
+        outvar_names=('bq', 'bp', 'bj', 'bk', 'cj', 'cf', 'bz', 'ca'), 
+        invar_avals=(ShapedArray(float32[2048,8192]), 
+                    ShapedArray(float32[8192]), 
+                    ShapedArray(float32[8192,2048]), 
+                    ShapedArray(float32[2048]), 
+                    ShapedArray(float32[128,2048]), 
+                    ShapedArray(float32[2048,8192]), 
+                    ShapedArray(float32[8192]), 
+                    ShapedArray(float32[8192,2048]), 
+                    ShapedArray(float32[2048]), 
+                    ShapedArray(float32[128,2048])), 
+        outvar_avals=(ShapedArray(float32[128,2048]), 
+                    ShapedArray(bool[128,2048]), 
+                    ShapedArray(float32[128,8192]), 
+                    ShapedArray(bool[128,8192]), 
+                    ShapedArray(float32[128,2048]), 
+                    ShapedArray(bool[128,2048]), 
+                    ShapedArray(float32[128,8192]), 
+                    ShapedArray(bool[128,8192])), 
+        donated_invars=(False, False, False, False, False, False, False, False, False, False), 
+        acc_grad_invars_indices=(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), 
+        acc_grad_outvars_indices=()), 
+        ModuleProfileConfig(
+            invar_names=('kv', 'kw', 'kt', 'ku', 'kr', 'ks', 'kp', 'kq', 'cj', 'cf', 'bz', 'ca', 'i', 'bq', 'g', 'bp', 'bj', 'bk', 'ba', 'e'), 
+            outvar_names=('ld', 'le', 'lb', 'lc', 'kz', 'la', 'kx', 'ky'),
+            invar_avals=(ShapedArray(float32[2048]), 
+                        ShapedArray(float32[8192,2048]), 
+                        ShapedArray(float32[8192]), 
+                        ShapedArray(float32[2048,8192]), 
+                        ShapedArray(float32[2048]), 
+                        ShapedArray(float32[8192,2048]), 
+                        ShapedArray(float32[8192]), 
+                        ShapedArray(float32[2048,8192]), 
+                        ShapedArray(float32[128,2048]), 
+                        ShapedArray(bool[128,2048]), 
+                        ShapedArray(float32[128,8192]), 
+                        ShapedArray(bool[128,8192]), 
+                        ShapedArray(float32[8192,2048]), 
+                        ShapedArray(float32[128,2048]), 
+                        ShapedArray(float32[2048,8192]), 
+                        ShapedArray(bool[128,2048]), 
+                        ShapedArray(float32[128,8192]), 
+                        ShapedArray(bool[128,8192]), 
+                        ShapedArray(float32[128,2048]), 
+                        ShapedArray(float32[8192,2048])), 
+                        outvar_avals=(ShapedArray(float32[2048]), 
+                                    ShapedArray(float32[8192,2048]), 
+                                    ShapedArray(float32[8192]), 
+                                    ShapedArray(float32[2048,8192]), 
+                                    ShapedArray(float32[2048]), 
+                                    ShapedArray(float32[8192,2048]), 
+                                    ShapedArray(float32[8192]), 
+                                    ShapedArray(float32[2048,8192])), 
+                        donated_invars=(True, True, True, True, True, True, True, True, False, False, False, False, False, 
+                            False, False, False, False, False, False, False), 
+                        acc_grad_invars_indices=(0, 1, 2, 3, 4, 5, 6, 7, 12, 14, 18, 19), 
+                        acc_grad_outvars_indices=(0, 1, 2, 3, 4, 5, 6, 7))], 
+    apply_grad_config=ApplyGradConfig(
+        invars=[k, l, m, n, s, t, u, v, j, b, c, d, e, a, o, p, q, r, w, x, y, z, f, g, h, i, kx, ky, kz, la, lb, lc, ld, le],
+        apply_grad_only_invars=OrderedSet([k, l, m, n, s, t, u, v, j, a, o, p, q, r, w, x, y, z])))
+
+
+auto_sharding_config: ((2,1), {'force_batch_dim_to_mesh_dim': 0})
+
+
+stage_0_1_acc_grad_0:merged_jaxpr:  { lambda ; a:f32[2048,8192] b:f32[8192] c:f32[8192,2048] d:f32[2048] e:f32[128,2048]
+    f:f32[2048,8192] g:f32[8192] h:f32[8192,2048] i:f32[2048] j:f32[128,2048]. 
+    
+    
+    let 
+    k:f32[128,2048] l:bool[128,2048] m:f32[128,8192] n:bool[128,8192] = named_call[
+      call_jaxpr={ lambda ; o:f32[2048,8192] p:f32[8192] q:f32[8192,2048] r:f32[2048]
+          s:f32[128,2048]. let
+          // dense1
+          t:f32[128,8192] = dot_general[
+            dimension_numbers=(((1,), (0,)), ((), ()))
+            precision=None
+            preferred_element_type=None
+          ] s o
+          u:f32[1,8192] = reshape[dimensions=None new_sizes=(1, 8192)] p
+          //add bias
+          v:f32[128,8192] = add t u
+          //relu1
+          w:f32[128,8192] = custom_jvp_call[
+            call_jaxpr={ lambda ; x:f32[128,8192]. let
+                y:f32[128,8192] = max x 0.0
+              in (y,) }
+            jvp_jaxpr_thunk=<function _memoize.<locals>.memoized at 0x7f0fa01e6310>
+            num_consts=0
+          ] v
+          z:bool[128,8192] = gt v 0.0
+          //dense2
+          ba:f32[128,2048] = dot_general[
+            dimension_numbers=(((1,), (0,)), ((), ()))
+            precision=None
+            preferred_element_type=None
+          ] w q
+          bb:f32[1,2048] = reshape[dimensions=None new_sizes=(1, 2048)] r
+          //add bias
+          bc:f32[128,2048] = add ba bb
+          //relu2
+          bd:f32[128,2048] = custom_jvp_call[
+            call_jaxpr={ lambda ; be:f32[128,2048]. let
+                bf:f32[128,2048] = max be 0.0
+              in (bf,) }
+            jvp_jaxpr_thunk=<function _memoize.<locals>.memoized at 0x7f0f702949d0>
+            num_consts=0
+          ] bc
+          bg:bool[128,2048] = gt bc 0.0
+        in (bd, bg, w, z) }
+      name=stage_0_1_acc_grad_00
+    ] a b c d e
+
+
+    bh:f32[128,2048] bi:bool[128,2048] bj:f32[128,8192] bk:bool[128,8192] = named_call[
+      call_jaxpr={ lambda ; bl:f32[128,2048] bm:f32[2048,8192] bn:f32[8192] bo:f32[8192,2048]
+          bp:f32[2048] bq:f32[128,2048]. 
+          let
+          br:f32[128,8192] = dot_general[
+            dimension_numbers=(((1,), (0,)), ((), ()))
+            precision=None
+            preferred_element_type=None
+          ] bl bm
+          bs:f32[1,8192] = reshape[dimensions=None new_sizes=(1, 8192)] bn
+          bt:f32[128,8192] = add br bs
+          bu:f32[128,8192] = custom_jvp_call[
+            call_jaxpr={ lambda ; bv:f32[128,8192]. let
+                bw:f32[128,8192] = max bv 0.0
+              in (bw,) }
+            jvp_jaxpr_thunk=<function _memoize.<locals>.memoized at 0x7f0f70294d30>
+            num_consts=0
+          ] bt
+          bx:bool[128,8192] = gt bt 0.0
+          by:f32[128,2048] = dot_general[
+            dimension_numbers=(((1,), (0,)), ((), ()))
+            precision=None
+            preferred_element_type=None
+          ] bu bo
+          bz:f32[1,2048] = reshape[dimensions=None new_sizes=(1, 2048)] bp
+          ca:f32[128,2048] = add by bz
+          cb:f32[128,2048] = custom_jvp_call[
+            call_jaxpr={ lambda ; cc:f32[128,2048]. let
+                cd:f32[128,2048] = max cc 0.0
+              in (cd,) }
+            jvp_jaxpr_thunk=<function _memoize.<locals>.memoized at 0x7f0f70294f70>
+            num_consts=0
+          ] ca
+          ce:bool[128,2048] = gt ca 0.0
+          cf:f32[128,2048] = sub cb bq
+          cg:f32[128,2048] = integer_pow[y=1] cf
+          ch:f32[128,2048] = mul 2.0 cg ##ch 已经求导完成，即loss对output的偏导
+        in (ch, ce, bu, bx) }
+      name=stage_0_1_acc_grad_01
+    ] k f g h i j
+  in (k, l, m, n, bh, bi, bj, bk) }
+
+stage_0_1_acc_grad_1:merged_jaxpr:  { lambda ; 
+    a:f32[2048] b:f32[8192,2048] c:f32[8192] d:f32[2048,8192] e:f32[2048]
+    f:f32[8192,2048] g:f32[8192] h:f32[2048,8192] i:f32[128,2048] j:bool[128,2048]
+    k:f32[128,8192] l:bool[128,8192] m:f32[8192,2048] n:f32[128,2048] o:f32[2048,8192]
+    p:bool[128,2048] q:f32[128,8192] r:bool[128,8192] s:f32[128,2048] t:f32[8192,2048]. 
+    
+    let
+    u:f32[2048] v:f32[8192,2048] w:f32[8192] x:f32[2048,8192] y:f32[128,2048] = named_call[
+      call_jaxpr={ lambda ; z:f32[2048] ba:f32[8192,2048] bb:f32[8192] bc:f32[2048,8192]
+          bd:f32[128,2048] be:bool[128,2048] bf:f32[128,8192] bg:bool[128,8192] bh:f32[8192,2048]
+          bi:f32[128,2048] bj:f32[2048,8192]. let
+          bk:f32[] = div 1.0 262144.0
+          bl:f32[128,2048] = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(128, 2048)
+          ] bk
+          bm:f32[128,2048] = mul bl bd
+          bn:f32[128,2048] = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(128, 2048)
+          ] 0.0
+          bo:bool[128,2048] = eq be True
+          bp:f32[128,2048] = select_n bo bn bm #bool，0，loss
+          bq:f32[2048] = reduce_sum[axes=(0,)] bp
+          br:f32[1,2048] = reshape[dimensions=None new_sizes=(1, 2048)] bq
+          bs:f32[2048] = reshape[dimensions=None new_sizes=(2048,)] br
+          bt:f32[2048,8192] = dot_general[#w4求导
+            dimension_numbers=(((0,), (0,)), ((), ()))
+            precision=None
+            preferred_element_type=None
+          ] bp bf
+          bu:f32[8192,2048] = transpose[permutation=(1, 0)] bt
+          bv:f32[128,8192] = dot_general[#output3求导
+            dimension_numbers=(((1,), (1,)), ((), ()))
+            precision=None
+            preferred_element_type=None
+          ] bp bh
+          bw:f32[128,8192] = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(128, 8192)
+          ] 0.0
+          bx:bool[128,8192] = eq bg True
+          by:f32[128,8192] = select_n bx bw bv
+          bz:f32[8192] = reduce_sum[axes=(0,)] by
+          ca:f32[1,8192] = reshape[dimensions=None new_sizes=(1, 8192)] bz
+          cb:f32[8192] = reshape[dimensions=None new_sizes=(8192,)] ca
+          cc:f32[8192,2048] = dot_general[
+            dimension_numbers=(((0,), (0,)), ((), ()))
+            precision=None
+            preferred_element_type=None
+          ] by bi
+          cd:f32[2048,8192] = transpose[permutation=(1, 0)] cc
+          ce:f32[128,2048] = dot_general[
+            dimension_numbers=(((1,), (1,)), ((), ()))
+            precision=None
+            preferred_element_type=None
+          ] by bj
+          cf:f32[2048] = add z bs
+          cg:f32[8192,2048] = add ba bu
+          ch:f32[8192] = add bb cb
+          ci:f32[2048,8192] = add bc cd
+        in (cf, cg, ch, ci, ce) }
+      name=stage_0_1_acc_grad_10
+    ] a b c d i j k l m n o
+    cj:f32[2048] ck:f32[8192,2048] cl:f32[8192] cm:f32[2048,8192] = named_call[
+      call_jaxpr={ lambda ; cn:f32[2048] co:f32[8192,2048] cp:f32[8192] cq:f32[2048,8192]
+          cr:f32[128,2048] cs:bool[128,2048] ct:f32[128,8192] cu:bool[128,8192] cv:f32[128,2048]
+          cw:f32[8192,2048]. let
+          cx:f32[128,2048] = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(128, 2048)
+          ] 0.0
+          cy:bool[128,2048] = eq cs True
+          cz:f32[128,2048] = select_n cy cx cr
+          da:f32[2048] = reduce_sum[axes=(0,)] cz
+          db:f32[1,2048] = reshape[dimensions=None new_sizes=(1, 2048)] da
+          dc:f32[2048] = reshape[dimensions=None new_sizes=(2048,)] db
+          dd:f32[2048,8192] = dot_general[#w2求导
+            dimension_numbers=(((0,), (0,)), ((), ()))
+            precision=None
+            preferred_element_type=None
+          ] cz ct
+          de:f32[8192,2048] = transpose[permutation=(1, 0)] dd
+          df:f32[128,8192] = dot_general[#output1求导
+            dimension_numbers=(((1,), (1,)), ((), ()))
+            precision=None
+            preferred_element_type=None
+          ] cz cw
+          dg:f32[128,8192] = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(128, 8192)
+          ] 0.0
+          dh:bool[128,8192] = eq cu True
+          di:f32[128,8192] = select_n dh dg df
+          dj:f32[8192] = reduce_sum[axes=(0,)] di
+          dk:f32[1,8192] = reshape[dimensions=None new_sizes=(1, 8192)] dj
+          dl:f32[8192] = reshape[dimensions=None new_sizes=(8192,)] dk
+          dm:f32[8192,2048] = dot_general[#w1求导
+            dimension_numbers=(((0,), (0,)), ((), ()))
+            precision=None
+            preferred_element_type=None
+          ] di cv
+          dn:f32[2048,8192] = transpose[permutation=(1, 0)] dm
+          do:f32[2048] = add cn dc
+          dp:f32[8192,2048] = add co de
+          dq:f32[8192] = add cp dl
+          dr:f32[2048,8192] = add cq dn
+        in (do, dp, dq, dr) }
+      name=stage_0_1_acc_grad_11
+    ] e f g h y p q r s t
+  in (u, v, w, x, cj, ck, cl, cm) }
+
+1 (0, 1, 1, 1) StageConfig(n_modules=2, compile_config=CompileConfig(hlo=<alpa.wrapped_hlo.WrappedHlo object at 0x7f6ce857d3a0>, names=['stage_0_1_acc_grad_0', 'stage_0_1_acc_grad_1', 'stage_0_1_apply_grad'], module_donate_invars=[(False, False, False, False, False, False, False, False, False, False), (True, True, True, True, True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False), (True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, False, False)], module_acc_grad_outvars_indices=[(), (0, 1, 2, 3, 4, 5, 6, 7)]), module_profile_configs=[ModuleProfileConfig(invar_names=('c', 'b', 'e', 'd', 'ba', 'g', 'f', 'i', 'h', 'bb'), outvar_names=('bq', 'bp', 'bj', 'bk', 'cj', 'cf', 'bz', 'ca'), invar_avals=(ShapedArray(float32[2048,8192]), ShapedArray(float32[8192]), ShapedArray(float32[8192,2048]), ShapedArray(float32[2048]), ShapedArray(float32[128,2048]), ShapedArray(float32[2048,8192]), ShapedArray(float32[8192]), ShapedArray(float32[8192,2048]), ShapedArray(float32[2048]), ShapedArray(float32[128,2048])), outvar_avals=(ShapedArray(float32[128,2048]), ShapedArray(bool[128,2048]), ShapedArray(float32[128,8192]), ShapedArray(bool[128,8192]), ShapedArray(float32[128,2048]), ShapedArray(bool[128,2048]), ShapedArray(float32[128,8192]), ShapedArray(bool[128,8192])), donated_invars=(False, False, False, False, False, False, False, False, False, False), acc_grad_invars_indices=(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), acc_grad_outvars_indices=()), ModuleProfileConfig(invar_names=('kv', 'kw', 'kt', 'ku', 'kr', 'ks', 'kp', 'kq', 'cj', 'cf', 'bz', 'ca', 'i', 'bq', 'g', 'bp', 'bj', 'bk', 'ba', 'e'), outvar_names=('ld', 'le', 'lb', 'lc', 'kz', 'la', 'kx', 'ky'), invar_avals=(ShapedArray(float32[2048]), ShapedArray(float32[8192,2048]), ShapedArray(float32[8192]), ShapedArray(float32[2048,8192]), ShapedArray(float32[2048]), ShapedArray(float32[8192,2048]), ShapedArray(float32[8192]), ShapedArray(float32[2048,8192]), ShapedArray(float32[128,2048]), ShapedArray(bool[128,2048]), ShapedArray(float32[128,8192]), ShapedArray(bool[128,8192]), ShapedArray(float32[8192,2048]), ShapedArray(float32[128,2048]), ShapedArray(float32[2048,8192]), ShapedArray(bool[128,2048]), ShapedArray(float32[128,8192]), ShapedArray(bool[128,8192]), ShapedArray(float32[128,2048]), ShapedArray(float32[8192,2048])), outvar_avals=(ShapedArray(float32[2048]), ShapedArray(float32[8192,2048]), ShapedArray(float32[8192]), ShapedArray(float32[2048,8192]), ShapedArray(float32[2048]), ShapedArray(float32[8192,2048]), ShapedArray(float32[8192]), ShapedArray(float32[2048,8192])), donated_invars=(True, True, True, True, True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False), acc_grad_invars_indices=(0, 1, 2, 3, 4, 5, 6, 7, 12, 14, 18, 19), acc_grad_outvars_indices=(0, 1, 2, 3, 4, 5, 6, 7))], apply_grad_config=ApplyGradConfig(invars=[k, l, m, n, s, t, u, v, j, b, c, d, e, a, o, p, q, r, w, x, y, z, f, g, h, i, kx, ky, kz, la, lb, lc, ld, le], apply_grad_only_invars=OrderedSet([k, l, m, n, s, t, u, v, j, a, o, p, q, r, w, x, y, z]))) 
+auto_sharding_config: ((2,1), {})
+
+
+
+
+compiled output: {acc_grad_module_compile_outputs;stage_plan;apply_grad_input_sharding_protos} 
+        CompileOutput(
+            acc_grad_module_compile_outputs=[
+                ModuleCompileOutput(
+                    hlo=<alpa.wrapped_hlo.WrappedHlo object at 0x7f6cf44c4760>, 
+                  10:input_sharding_protos=[b'', b'', b'', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'', b'', b'', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01'], 
+                    1:output_sharding_proto=b'\x08\x02*\n\x08\x03\x1a\x02\x02\x01"\x02\x00\x01*\n\x08\x03\x1a\x02\x02\x01"\x02\x00\x01*\n\x08\x03\x1a\x02\x02\x01"\x02\x00\x01*
+                        \n\x08\x03\x1a\x02\x02\x01"\x02\x00\x01*\n\x08\x03\x1a\x02\x02\x01"\x02\x00\x01*\n\x08\x03\x1a\x02\x02\x01"\x02\x00\x01*\n\x08\x03\x1a\x02\x02\x01"
+                        \x02\x00\x01*\n\x08\x03\x1a\x02\x02\x01"\x02\x00\x01'), 
+                ModuleCompileOutput(
+                    hlo=<alpa.wrapped_hlo.WrappedHlo object at 0x7f6cf44c47f0>, 
+                   20:input_sharding_protos=[b'', b'', b'', b'', b'', b'', b'', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b''], 
+                    1:output_sharding_proto=b'\x08\x02*\x00*\x00*\x00*\x00*\x00*\x00*\x00*\x00')], 
+            stage_plan=StagePlan(
+                build_random_seed=42, 
+                logical_mesh_shape=(2, 1), 
+                all_gather_threshold=1152921504606846976, 
+                all_reduce_threshold=1152921504606846976, 
+                auto_sharding_option=AutoShardingOption(
+                    enable_auto_sharding=True, 
+                    allow_all_gather=True, 
+                    allow_all_to_all=True, 
+                    allow_replicated_parameters=True, 
+                    force_data_parallel=False, 
+                    force_batch_dim_to_mesh_dim=0, 
+                    force_zero_stage_3=False, 
+                    force_zero_stage_3_all_gather_threshold=33554432, 
+                    prefer_reduce_scatter=True,
+                     allow_mixed_mesh_shape=False, 
+                     allow_recompute_heavy_op=False, 
+                     force_simple_heuristic='', 
+                     all_reduce_threshold=1152921504606846976), 
+                auto_sharding_solution_vector=array([
+       2, 1, 2, 1, 0, 0, 2, 1, 2, 1, 2, 1, 2, 1, 0, 2, 1, 2, 1, 0, 2, 1,
+       2, 1, 0, 2, 1, 2, 1, 0, 2, 0, 0, 1, 1, 0, 0, 0, 0, 2, 0, 1, 1, 0,
+       0, 0, 0, 2, 0, 1, 1, 0, 0, 2, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 0, 0,
+       0, 0, 2, 0, 2, 0, 0, 0, 0, 2, 1, 2, 1, 2, 1, 2, 1, 2, 0, 0, 0, 0,
+       2, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0,
+       2, 0, 0, 0, 0, 2, 2, 2, 0, 2, 2, 2, 0, 0, 1, 1, 0, 0, 1, 1, 0, 2,
+       2, 2, 0, 0, 1, 1, 0, 2, 2, 2, 0, 0, 1, 1, 1, 2, 1, 2, 1, 2, 1, 2,
+       1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2,
+       1, 2, 0, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 0, 1,
+       2, 1, 2, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2,
+       1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 0, 1, 2, 1, 2, 0, 1, 2, 1, 2, 1, 2,
+       1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 2, 0, 0, 2, 2, 0, 0, 2,
+       2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0,
+       2, 0, 0, 0, 0, 2, 2, 0, 0, 2, 2, 0, 0, 2, 2, 2, 0, 0, 2, 2, 2, 1,
+       0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0,
+       1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 2, 0, 0, 2, 2, 0, 0, 2, 2, 0,
+       0, 2, 2, 2, 2, 2, 0, 0, 2, 2, 2, 0, 0, 2, 2, 0, 0, 2, 2, 2, 0, 0,
+       2, 2, 2, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1,
+       1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2,
+       2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+       2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+       1, 1, 1, 1, 0, 0, 0, 1, 2, 1, 2, 1, 2, 1, 2, 0, 1, 2, 1, 2, 0, 1,
+       2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 0, 1, 2,
+       1, 2, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1,
+       2, 0, 1, 2, 1, 2, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 2, 1, 2,
+       1, 2, 1, 2, 1, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 0,
+       0, 1, 2, 1, 2, 1, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0], dtype=int32), //655
+       auto_sharding_objective=268517510.08), 
+       apply_grad_input_sharding_protos=[
+        b'\x08\x03\x1a\x01\x02"\x02\x00\x01', 
+        b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', 
+        b'\x08\x03\x1a\x01\x02"\x02\x00\x01', 
+        b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', 
+        b'\x08\x03\x1a\x01\x02"\x02\x00\x01', 
+        b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', 
+        b'\x08\x03\x1a\x01\x02"\x02\x00\x01', 
+        b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', 
+        b'', b'', b'', b'', b'', b'', 
+        b'\x08\x03\x1a\x01\x02"\x02\x00\x01', 
+        b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', 
+        b'\x08\x03\x1a\x01\x02"\x02\x00\x01', 
+        b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', 
+        b'\x08\x03\x1a\x01\x02"\x02\x00\x01', 
+        b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', 
+        b'\x08\x03\x1a\x01\x02"\x02\x00\x01', 
+        b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', 
+        b'', b'', b'', b'', b'', b'', b'', b'', b'', b'', b'', b''])34
+
+
+compiled output:  CompileOutput(acc_grad_module_compile_outputs=[ModuleCompileOutput(hlo=<alpa.wrapped_hlo.WrappedHlo object at 0x7f6cf4769940>, input_sharding_protos=[b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'', b'', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01'], output_sharding_proto=b'\x08\x02*\x00*\x00*\n\x08\x03\x1a\x02\x01\x02"\x02\x00\x01*\n\x08\x03\x1a\x02\x01\x02"\x02\x00\x01*\n\x08\x03\x1a\x02\x02\x01"\x02\x00\x01*\n\x08\x03\x1a\x02\x02\x01"\x02\x00\x01*\n\x08\x03\x1a\x02\x01\x02"\x02\x00\x01*\n\x08\x03\x1a\x02\x01\x02"\x02\x00\x01'), ModuleCompileOutput(hlo=<alpa.wrapped_hlo.WrappedHlo object at 0x7f6d7d7b8b20>, input_sharding_protos=[b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01'], output_sharding_proto=b'\x08\x02*\x00*\n\x08\x03\x1a\x02\x02\x01"\x02\x00\x01*\t\x08\x03\x1a\x01\x02"\x02\x00\x01*\n\x08\x03\x1a\x02\x01\x02"\x02\x00\x01*\x00*\n\x08\x03\x1a\x02\x02\x01"\x02\x00\x01*\t\x08\x03\x1a\x01\x02"\x02\x00\x01*\n\x08\x03\x1a\x02\x01\x02"\x02\x00\x01')], stage_plan=StagePlan(build_random_seed=42, logical_mesh_shape=(2, 1), all_gather_threshold=1152921504606846976, all_reduce_threshold=1152921504606846976, auto_sharding_option=AutoShardingOption(enable_auto_sharding=True, allow_all_gather=True, allow_all_to_all=True, allow_replicated_parameters=True, force_data_parallel=False, force_batch_dim_to_mesh_dim=None, force_zero_stage_3=False, force_zero_stage_3_all_gather_threshold=33554432, prefer_reduce_scatter=True, allow_mixed_mesh_shape=False, allow_recompute_heavy_op=False, force_simple_heuristic='', all_reduce_threshold=1152921504606846976), auto_sharding_solution_vector=array([1, 0, 0, 1, 2, 2, 1, 0, 0, 1, 1, 0, 0, 1, 2, 1, 0, 0, 1, 2, 1, 0,
+       0, 1, 2, 1, 0, 0, 1, 2, 1, 2, 1, 0, 0, 1, 0, 0, 1, 0, 2, 1, 1, 2,
+       0, 0, 2, 1, 1, 0, 0, 1, 1, 0, 2, 1, 1, 2, 2, 2, 2, 0, 0, 2, 2, 1,
+       2, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1,
+       2, 2, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 2, 2,
+       1, 1, 0, 2, 1, 2, 1, 1, 2, 0, 1, 0, 0, 1, 1, 0, 0, 1, 2, 2, 1, 1,
+       0, 2, 1, 2, 1, 1, 2, 0, 2, 0, 0, 2, 2, 2, 0, 1, 1, 1, 1, 2, 2, 2,
+       0, 1, 1, 1, 2, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 2, 1, 1, 2, 1,
+       1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 2, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1,
+       1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1,
+       1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0,
+       1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1,
+       1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1,
+       1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+       0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0,
+       1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0,
+       0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0,
+       1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+       1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0,
+       1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1,
+       1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1,
+       0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0,
+       1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0,
+       0, 0, 1, 1, 0, 0, 1, 1, 0, 2, 2, 1, 1, 2, 2, 1, 1], dtype=int32), auto_sharding_objective=3145773.0300000003), apply_grad_input_sharding_protos=[b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'', b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'', b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01', b'\x08\x03\x1a\x01\x02"\x02\x00\x01', b'\x08\x03\x1a\x02\x01\x02"\x02\x00\x01', b'', b'\x08\x03\x1a\x02\x02\x01"\x02\x00\x01'])
+
+
+
+
+array(
+  {(0, 1, 1, 0): <alpa.pipeline_parallel.stage_profiling.StageProfileResult object at 0x7fa87568a910>, 
+    (0, 1, 1, 1): <alpa.pipeline_parallel.stage_profiling.StageProfileResult object at 0x7fa74aae9640>, 
+    (1, 1, 0, 1): <alpa.pipeline_parallel.stage_profiling.StageProfileResult object at 0x7fa74aa87910>, 
+    (0, 1, 0, 0): <alpa.pipeline_parallel.stage_profiling.StageProfileResult object at 0x7fa74aa87f10>, 
+    (1, 1, 0, 0): <alpa.pipeline_parallel.stage_profiling.StageProfileResult object at 0x7fa74aa8c910>, 
+    (0, 0, 0, 0): <alpa.pipeline_parallel.stage_profiling.StageProfileResult object at 0x7fa74aa8cf10>, 
+    (0, 0, 0, 1): <alpa.pipeline_parallel.stage_profiling.StageProfileResult object at 0x7fa74aa914c0>, 
+    (0, 1, 0, 1): <alpa.pipeline_parallel.stage_profiling.StageProfileResult object at 0x7fa74aa91a30>},
+      dtype=object)
+
+>>> b[0,1,1,0].__str__()
+"StageProfileResult(
+    available_memory=20.882 GB, 
+    initial_var_size=0.250 GB, 
+    module_profile_results=[
+        ModuleProfileResult(
+          compute_cost=0.0014254252115885417, 
+          peak_memory=276119952, 
+          temp_buffer_size=400, 
+          invar_names=('c', 'b', 'e', 'd', 'ba', 'g', 'f', 'i', 'h', 'bb'), 
+          outvar_names=('bq', 'bp', 'bj', 'bk', 'cj', 'cf', 'bz', 'ca'), 
+          invar_sizes=(67108864, 32768, 67108864, 8192, 524288, 67108864, 32768, 67108864, 8192, 524288), 
+          outvar_sizes=(524288, 131072, 2097152, 524288, 524288, 131072, 2097152, 524288), 
+          donated_invars=(False, False, False, False, False, False, False, False, False, False), 
+          acc_grad_invars_indices=(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), 
+          acc_grad_outvars_indices=(),
+          available_memory=22422336307), 
+        ModuleProfileResult(
+            compute_cost=0.0034599569108751086, 
+            peak_memory=745439776, 
+            temp_buffer_size=268517920, 
+            invar_names=('kv', 'kw', 'kt', 'ku', 'kr', 'ks', 'kp', 'kq', 'cj', 'cf', 'bz', 'ca', 'i', 'bq', 'g', 'bp', 'bj', 'bk', 'ba', 'e'), 
+            outvar_names=('ld', 'le', 'lb', 'lc', 'kz', 'la', 'kx', 'ky'), 
+            invar_sizes=(8192, 67108864, 32768, 67108864, 8192, 67108864, 32768, 67108864, 524288, 131072, 2097152, 524288, 67108864, 524288, 
+              67108864, 131072, 2097152, 524288, 524288, 67108864), 
+            outvar_sizes=(8192, 67108864, 32768, 67108864, 8192, 67108864, 32768, 67108864), 
+            donated_invars=(True, True, True, True, True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False), 
+            acc_grad_invars_indices=(0, 1, 2, 3, 4, 5, 6, 7, 12, 14, 18, 19), acc_grad_outvars_indices=(0, 1, 2, 3, 4, 5, 6, 7), 
+            available_memory=22422336307)])"

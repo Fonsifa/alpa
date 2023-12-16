@@ -64,7 +64,7 @@ if global_config.backend == "gpu" and global_config.has_cuda:
     from alpa.collective import worker_nccl_util
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 ReshardingTileSpec = namedtuple("ReshardingTileSpec",
                                 ["offset", "rank", "gpu_idx"])
@@ -124,6 +124,7 @@ class MeshHostWorker:
         self.distributed_client.connect()
         logger.debug(
             f"{host_id}: Success to connect to xla runtime at {server_address}")
+        print("MeshHostWorker: successfully connect to XLA server")
         if global_config.backend == "gpu":
             self.backend = xla_client.make_gpu_client(self.distributed_client,
                                                       node_id=host_id)
@@ -1005,10 +1006,12 @@ class DistributedPhysicalDeviceMesh(PhysicalDeviceMesh):
                 pass
 
         if found_existing_workers:
+            print("found_existing_workers")
             self.service_server = None
             self.workers = self.connect_to_existing_workers()
             self.launched = False
         else:
+            print("not found_existing_workers, launch xla servers")
             self.service_server, self.workers = self.launch_xla_servers()
             self.launched = True
 
@@ -1017,6 +1020,7 @@ class DistributedPhysicalDeviceMesh(PhysicalDeviceMesh):
 
     def get_host_worker_name(self, host_id):
         if self.namespace:
+            print("worker: ",f"mesh_{self.mesh_id}_host_{host_id}")
             return f"mesh_{self.mesh_id}_host_{host_id}"
         else:
             return None
@@ -1042,7 +1046,8 @@ class DistributedPhysicalDeviceMesh(PhysicalDeviceMesh):
         service_server = xla_client._xla.get_distributed_runtime_service(
             server_address, self.num_hosts, use_coordination_service=False)
         logger.debug(f"Success to start XLA gRPC server on port: {port}...")
-        time.sleep(0.4)
+        print("start XLA server in DistributedPhysicalMesh :",server_address)
+        time.sleep(2)
 
         # Launch workers
         workers = []
@@ -1117,6 +1122,7 @@ class DistributedPhysicalDeviceMesh(PhysicalDeviceMesh):
                                            self.mesh_id, move_worker,
                                            global_config.runtime_random_seed)
             workers.append(worker)
+        print(len(workers) ,"MeshHostWorkers are created")
         return service_server, workers
 
     @property
@@ -1783,6 +1789,12 @@ def prefetch(dis_arrays: Sequence[Union[ShardedDeviceArray, DistributedArray,
 ########################################
 class VirtualPhysicalMesh:
     """
+    用于流水线并行编译的虚拟物理网格。VirtualPhysicalMesh 在编译时使用, 不会为它分配实际的 Worker。
+    编译完成后，我们将其实例化为 PhysicalDeviceMesh 并启动 Worker。
+    一个 VirtualPhysicalMesh 也可以被切成多个 VirtualPhysicalMesh。
+    切片后，每个被切片的 VirtualPhysicalMesh 都可以实例化为一个 PhysicalDeviceMesh。
+    这些被切分的物理设备网格可以共同组成一个物理设备网格组(PhysicalDeviceMeshGroup),
+    以实现流水线并行。
     A virtual physical mesh used for pipeline parallel compilation.
 
     VirtualPhysicalMesh is used during compile time. We don't allocate actual
@@ -2135,6 +2147,19 @@ class DeviceCluster:
         ray_global_node = ray_worker._global_node
         try:
             self.head_info = ray_global_node.address_info
+        # {
+        # 'node_ip_address':'10.176.22.221',
+        # 'raylet_ip_address':'10.176.22.221',
+        # 'redis_address':None,
+        # 'object_store_address':'/tmp/ray/session_2023-12-16_12-55-25_647403_776800/sockets/plasma_store',
+        # 'raylet_socket_name':'/tmp/ray/session_2023-12-16_12-55-25_647403_776800/sockets/raylet',
+        # 'webui_url':'',
+        # 'session_dir':'/tmp/ray/session_2023-12-16_12-55-25_647403_776800',
+        # 'metrics_export_port':64426,
+        # 'gcs_address':'10.176.22.221:6379',
+        # 'address':'10.176.22.221:6379',
+        # 'dashboard_agent_listen_port':52365
+        # }
         except AttributeError as ae:
             raise RuntimeError(
                 "Cannot access ray global node. Did you call ray.init?") \
@@ -2151,6 +2176,9 @@ class DeviceCluster:
                         in node["Resources"]):
                     all_host_info.append(node)
                     all_host_ips.append(key.split("node:")[-1])
+        
+        #print(all_host_info)[{'NodeID': 'xxx', 'Alive': True, 'NodeManagerAddress': '10.176.22.221', 'NodeManagerHostname': 'rdma221', 'NodeManagerPort': 34439, 'ObjectManagerPort': 46231, 'ObjectStoreSocketName': 'xx', 'RayletSocketName': 'xx', 'MetricsExportPort': 64426, 'NodeName': '10.176.22.221', 'alive': True, 'Resources': {'CPU': 64.0, 'object_store_memory': 72142757068.0, 'memory': 158333099828.0, 'node:10.176.22.221': 1.0, 'GPU': 2.0}}, 
+        #{'NodeID': 'xxx', 'Alive': True, 'NodeManagerAddress': '10.176.22.220', 'NodeManagerHostname': 'rdma220', 'NodeManagerPort': 36049, 'ObjectManagerPort': 37143, 'ObjectStoreSocketName': 'xx', 'RayletSocketName': 'xx', 'MetricsExportPort': 63691, 'NodeName': '10.176.22.220', 'alive': True, 'Resources': {'accelerator_type:G': 1.0, 'memory': 179180961792.0, 'object_store_memory': 76791840768.0, 'CPU': 64.0, 'GPU': 2.0, 'node:10.176.22.220': 1.0}}]
 
         # Gather device info
         all_host_num_devices = []
@@ -2158,7 +2186,7 @@ class DeviceCluster:
             number = host_info["Resources"][global_config.ray_accelerator_name]
             assert number.is_integer()
             all_host_num_devices.append(int(number))
-
+        #print(all_host_num_devices)[2,2]
         # adjust the resource allocations
         # if `num_nodes` is set, use it.
         # otherwise, use the number of nodes in cluster
@@ -2181,7 +2209,7 @@ class DeviceCluster:
             self.host_num_devices = all_host_num_devices
 
         # Create placement group
-        self.namespace = namespace
+        self.namespace =namespace #'None'
         if namespace:
             pg_name = namespace + "_pg"
             try:

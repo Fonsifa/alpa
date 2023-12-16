@@ -1,0 +1,18 @@
+from，to，submush_choices_idx，autosharding config
+[[[[0.00229896 0.00252581]
+   [       inf        inf]]
+
+  [[0.00382972 0.00389926]
+   [0.00471987 0.00322694]]]
+
+
+ [[[       inf        inf]
+   [       inf        inf]]
+
+  [[0.00275302 0.00274181]
+   [       inf        inf]]]]
+Result forward_stage_layer_ids: [[0], [1]]
+Result mesh_shapes: [(1, 1), (1, 1)]
+Result logical_mesh_shapes: [(1, 1), (1, 1)]
+Result autosharding_option_dicts: [{'force_batch_dim_to_mesh_dim': 0}, {}]
+ 

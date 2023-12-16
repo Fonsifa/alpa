@@ -293,8 +293,8 @@ class CompileWorkerPool(BaseWorkerPoolWrapper):
 
     def __init__(self, num_cpus, debug_mode=False):
         super().__init__()
-        worker_cls = ray.remote(num_cpus=1)(CompileWorker)
-        self.actors = [worker_cls.remote() for _ in range(num_cpus)]
+        worker_cls = ray.remote(num_cpus=1)(CompileWorker)#actor class
+        self.actors = [worker_cls.remote() for _ in range(num_cpus)]#get remote actor handles
         self.pool = ActorPool(self.actors)
         self.local_worker = CompileWorker() if debug_mode else None
 
@@ -342,6 +342,7 @@ class ProfileWorker:
                 peak memory during the computation, the total available memory,
                 the input intermediate size and input initial size.
         """
+        print("profiling stage: ",stage_id)
         input_avals = profile_config.invar_avals
         output_avals = profile_config.outvar_avals
         donated_invars = profile_config.donated_invars
@@ -357,12 +358,17 @@ class ProfileWorker:
                                                         stage_plan, input_avals,
                                                         output_avals,
                                                         donated_invars)
+        print("get executable")
 
         # Run profiling
         self.mesh.reset_memory_stats()
+        print("reset memory")
         peak_memory = executable.get_total_allocation_size()
+        print("get peak memory",peak_memory)
         available_memory = self.mesh.get_available_memory()
-        cost = executable.profile_with_dummy_inputs(skip_grad_sync=True)
+        print("get available memory",available_memory)
+        cost = executable.profile_with_dummy_inputs(skip_grad_sync=True)#problem
+        print("test dummy cost",cost)
         del executable
 
         return stage_id, cost, peak_memory, available_memory
@@ -393,6 +399,7 @@ class ProfileWorker:
 
     def restart(self, forced):
         """Restart the physical mesh."""
+        print("restart profile worker")
         self.mesh.shutdown(forced=forced)
         self.virtual_mesh.launched_physical_mesh = None
         self.mesh = self.virtual_mesh.get_physical_mesh()
@@ -408,6 +415,7 @@ class ProfileWorkerPool(BaseWorkerPoolWrapper):
             worker_cls.options(placement_group=placement_group).remote(mesh)
             for mesh in virtual_meshes
         ]
+        print("number of actors:", len(self.actors))
         self.pool = ActorPool(self.actors)
 
 
@@ -596,10 +604,13 @@ def profile_all(stages, compiled_outputs: Sequence[CompileOutput], meshes,
                                                         prof_result,
                                                         mesh_num_devices,
                                                         num_micro_batches)
+        print("use HloCostModelProfileWorkerPool")
     else:
+        print("use ProfileWorkerPool")
         profile_workers = ProfileWorkerPool(meshes, placement_group)
 
     successful_compile_ct = 0
+    print(len(stages)," is profiling")
     for i, (compiled_output, stage) in enumerate(zip(compiled_outputs, stages)):
         if compiled_output is None:
             continue
@@ -614,12 +625,12 @@ def profile_all(stages, compiled_outputs: Sequence[CompileOutput], meshes,
                                    ((i, module_id), acc_grad_module,
                                     compiled_output.stage_plan, profile_config))
             successful_compile_ct += 1
-
     pbar = tqdm.tqdm(range(successful_compile_ct))
     for _ in pbar:
         try:
             ((i, module_id),
-             *module_raw_result) = profile_workers.get_next_unordered()
+             *module_raw_result) = profile_workers.get_next_unordered()#problem
+            print(i,module_id)
         except TimeoutError:
             profile_workers.shutdown(force=True)
             logger.warning("After waiting for too long, "
@@ -686,7 +697,7 @@ def generate_training_stages_2d(layers,
                 if apply_grad_layers[idx] is not None
             ]
             stage_name = f"stage_{start}_{end}"
-            stage_config = generate_stage_info(
+            stage_config = generate_stage_info(#jax to hlo
                 layers, [forward_layer_indices, backward_layer_indices],
                 accumulator_mapping, acc_grad_invars, acc_grad_outvars,
                 stage_name, selected_apply_grad_layers, apply_grad_global_info)
@@ -1242,7 +1253,7 @@ def get_compute_cost(
             ).get_virtual_physical_mesh()
             sliced_virtual_meshes = (
                 whole_cluster_virtual_mesh.slice_profiling_submeshes(
-                    num_hosts, num_devices_per_host))
+                    num_hosts, num_devices_per_host))#list of virtualPhysicalMesh
         else:
             sliced_virtual_meshes = virtual_mesh.slice_profiling_submeshes(
                 num_hosts, num_devices_per_host)
@@ -1257,6 +1268,7 @@ def get_compute_cost(
                     sliced_virtual_meshes[0].num_devices, cluster_size,
                     auto_stage_option.stage_imbalance_tolerance)
             else:
+                #starge==>(stage_indices, stage_config, autosharding_config)
                 stages = generate_training_stages_2d(
                     layers, layer_flops_prefix_sum, accumulator_mapping,
                     acc_grad_invars, acc_grad_outvars, apply_grad_layers,

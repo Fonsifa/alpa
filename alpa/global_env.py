@@ -94,8 +94,8 @@ class GlobalConfig:
         self.flax_always_use_fp16_embedding = False
 
         ########## Options of logging ##########
-        self.print_compilation_time = False
-        self.print_auto_layer_stats = False
+        self.print_compilation_time = True
+        self.print_auto_layer_stats = True
 
         # Whether to collect activity trace
         self.collect_trace = False

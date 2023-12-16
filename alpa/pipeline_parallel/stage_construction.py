@@ -623,7 +623,7 @@ def cluster_layers_and_slice_mesh(
         submesh_choices = get_submesh_choices(
             virtual_mesh.num_hosts, virtual_mesh.num_devices_per_host,
             stage_option.submesh_physical_shape_space,
-            stage_option.manually_specified_submeshes)
+            stage_option.manually_specified_submeshes)#(1,1) (1,2)....(1,M),(2,M)...(N,M)
         autosharding_configs = get_all_submesh_autosharding_config_choices(
             virtual_mesh, submesh_choices,
             stage_option.submesh_logical_shape_space, batch_size)
